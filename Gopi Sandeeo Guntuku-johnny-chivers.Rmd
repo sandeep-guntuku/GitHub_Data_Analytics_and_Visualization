@@ -1,0 +1,287 @@
+---
+title: "GitHub Data Analytics and Visualization"
+author: "Gopi Sandeep Guntuku"
+date: "3/30/2022"
+output: html_document
+---
+### **GitHub User: Johnny Chivers**
+
+Johnny Chivers is a Full-Time AWS Data Guru and Part-Time YouTuber. 
+
+The details of the Github Repository : Max Johnny Chivers has 33 repositories and 25 followers.
+The repositories are based on the tutorials uploaded in youtube.
+
+The Github link : https://github.com/johnny-chivers
+
+### **Code**
+##### **Loading the libraries required in the project:**
+
+```{r }
+library(gh)
+library(httr)
+library(tidyverse)
+library(kableExtra)
+library(ggthemes)
+```
+
+Updating the personal token from GitHub
+
+```{r }
+# Token from Github
+my_github_token = "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"
+Sys.setenv(GITHUB_TOKEN = my_github_token)
+
+```
+
+### **Table 1**
+
+Creating a table showing johnny chiver’s login, name, public_repos, followers.
+
+```{r}
+
+johnny_chivers <- gh("GET /users/johnny-chivers", 
+                     username = "johnny-chivers",.limit=Inf)
+
+```
+
+
+Class, Length and Names of the followers are extracted.
+```{r}
+
+class(johnny_chivers)
+
+```
+
+
+```{r}
+
+length(johnny_chivers)
+
+```
+
+```{r }
+
+names(johnny_chivers)
+
+```
+
+DataFrame for getting login, name, puclic_repos, followers.
+
+```{r }
+
+johnny_chivers <- tibble(
+  login = johnny_chivers$login,
+  name = johnny_chivers$name,
+  public_repos = johnny_chivers$public_repos,
+  followers = johnny_chivers$followers
+)
+
+```
+
+Visualizing the tabular data using Kable
+
+```{r }
+
+head(johnny_chivers, n = 50) %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("bordered","condensed","responsive"))
+
+```
+### **Table 2**
+
+Creating a table showing johnny chiver follower's login, name, public_repos, followers.
+
+
+```{r }
+
+# followers list fetching
+johnny_followers <- gh("/users/johnny-chivers/followers", .limit = Inf)
+
+# followers dataframe creation
+df_johnny_followers <- data.frame(User=character(),
+                           login=character(), 
+                           public_repos=integer(), 
+                           followers=integer())
+
+# null values function
+null_list <- function(x){
+  map_chr(x, ~{ifelse(is.null(.x), NA, .x)})
+}
+
+is.not.null <- function(x) !is.null(x)
+n <- length(johnny_followers)
+
+
+# For loop for going to url of each follower and take further info
+
+# loop for extracting each follower from github url
+
+for (i in 1:n)
+{
+  # fetch data by taking one follower
+  login = johnny_followers[[i]]$login
+  
+  # fetch the follower's profile
+  f_profile <- gh("GET /users/:login", login = login, .limit = Inf)
+  
+  # rest of the data considered
+  name = f_profile$name
+  public_repos =f_profile$public_repos
+  followers = f_profile$followers
+  
+  # null values checking an updating dataframe
+  if (is.not.null(name) & is.not.null(login) & is.not.null(public_repos) 
+      & is.not.null(followers))
+  {
+    df_johnny_followers <- rbind(df_johnny_followers, data.frame(User=null_list(name),
+                                                   login = (login),
+                                                   public_repos=null_list(public_repos),
+                                                   followers = null_list(followers)))
+  }
+}
+```
+
+Visualizing the tabular data using Kable
+
+```{r}
+
+head(df_johnny_followers, n = 10) %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("bordered","condensed","responsive"))
+```
+### **Table 3**
+
+Creating a table showing johnny chiver’ name, size, forks_count, open_issues_count, closed_issue_count.
+
+A new column for year has been created for better visulaization.
+
+Reository information fetching and showing the length of repository
+
+```{r}
+
+# repository info fetching 
+johnny_repos <- gh("GET /users/johnny-chivers/repos", username = "johnny-chivers",.limit = Inf)
+length(johnny_repos)
+
+```
+
+Dataframe creation for extracting repository information
+
+```{r}
+
+# dataframe creation
+johnny_repos_info <- data.frame(Repo_Name=character(),
+                               size=integer(), 
+                               forks=integer(), 
+                               open_issues_count=integer(),
+                               closed_issues_count=integer()) 
+
+# loop for getting data from each repository
+
+for (i in 1:length(johnny_repos))
+{ 
+  
+  # finding all required columns 
+  name = johnny_repos[[i]]$name
+  size = johnny_repos[[i]]$size
+  created_year = as.integer(substring(johnny_repos[[i]]$created_at,1,4))
+  forks = johnny_repos[[i]]$forks_count
+  open_issues_count = johnny_repos[[i]]$open_issues_count
+  
+  closed_issues_url <-
+    paste0(johnny_repos[[i]]$url,"/issues?state=closed")
+  
+  closed_issues = gh(closed_issues_url,username = "johnny-chivers",.limit = Inf)
+  closed_issues_count = length(closed_issues)
+  
+  # extracting data into dataframe
+  if (is.not.null(name) & is.not.null(size) & is.not.null(forks)
+      & is.not.null(created_year)
+      & is.not.null(open_issues_count) & is.not.null(closed_issues_count))
+  {
+    johnny_repos_info<-rbind(johnny_repos_info, data.frame(Repo_Name = null_list(name),
+                                                         size = null_list(size),
+                                                         forks = null_list(forks),
+                                                         created_year = null_list(created_year),
+                                                         open_issues_count = null_list(open_issues_count),
+                                                         closed_issues_count = null_list(closed_issues_count)))
+  }
+  
+}
+
+```
+
+Visualizing the tabular data using Kable
+
+```{r}
+
+head(johnny_repos_info, n = 15) %>% kable() %>%
+  kable_styling(bootstrap_options = c("bordered","condensed","responsive"))
+
+```
+
+### **Data Visualization:**
+
+### **1. Bar Plot of Forks vs Repository Name**
+
+We are making use of ggplot library in the tidyverse package along with bar function and themes for showing the variation of forks created for each repository.
+
+```{r }
+
+# Summary creation
+Johnny_popular_repos <- johnny_repos_info %>% 
+  arrange(desc(forks))
+
+df <- head(Johnny_popular_repos)
+
+# create the plot using ggplot 
+ggplot(df, 
+       aes(x = Repo_Name, y = forks)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  theme_solarized() +
+  scale_color_gdocs() +
+  theme(axis.text.x=element_text(angle = 30, vjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  ggtitle("Popular Repos ") +
+  xlab("Repo Name") +
+  ylab ("Number of Forks")
+
+```
+
+_From the above bar plot, we observe that, ElasticSearch reposioty is majorly forked followed by aws-data-engineering repository_ 
+
+
+### **2. Box Plot of Skill Group Category vs Mean value of LinkedIn Members based on Country **
+
+We are making use of ggplot library in the tidyverse package along gdocs themes for showing the variation of count of Repositories by year.
+
+```{r }
+
+df_repo_summary <- johnny_repos_info %>% group_by(created_year) %>% 
+  summarise(Repo_Count = n())
+
+
+
+# create the plot using ggplot 
+ggplot(df_repo_summary, 
+       aes(x = created_year, y = Repo_Count)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  theme_solarized() +
+  scale_color_gdocs() +
+  theme(axis.text.x=element_text(angle = 30, vjust = 0.5)) +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "bottom") +
+  ggtitle("Repo count by year") +
+  xlab("Year") +
+  ylab ("Number of Repos") 
+
+```
+
+_From the above bar plot, we observe that, around 20 repositories are created in year 2021 and it is the highest count_ 
+
+### **Conclusion:**
+
+**1. Github user Johnny-chivers has 33 repositories and 25 followers**
+
+**2. From the visulaizations, we observed that ElasticSearch reposioty is majorly forked followed by aws-data-engineering repository **
+
+**3. Also, around 20 repositories are created in year 2021 and it is the highest count **
